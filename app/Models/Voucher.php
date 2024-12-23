@@ -49,6 +49,7 @@ class Voucher extends Model
         'numero',
         'tipo_comprobante',
         'moneda',
+        'amount',
         'user_id',
     ];
 
