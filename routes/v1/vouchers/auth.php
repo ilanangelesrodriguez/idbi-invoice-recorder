@@ -12,5 +12,7 @@ Route::prefix('vouchers')->group(
         Route::post('/register', [VoucherController::class, 'registerInvoices']);
         Route::get('/totals', [VoucherController::class, 'getTotalAmountsByCurrency']);
         Route::delete('/{id}', [VoucherController::class, 'deleteVoucher']);
+
+        Route::get('/filtros', [VoucherController::class, 'listVouchers']);
     }
 );

@@ -84,4 +84,51 @@ class VoucherController extends Controller
         }
     }
 
+    public function listVouchers(Request $request): JsonResponse
+    {
+        // Obtener el usuario autenticado
+        $user = Auth::user();
+
+        // Validar los filtros enviados en la solicitud
+        $validated = $request->validate([
+            'serie' => 'nullable|string',                // Filtro por serie
+            'numero' => 'nullable|string',              // Filtro por número
+            'tipo_comprobante' => 'nullable|string',    // Filtro por tipo de comprobante
+            'moneda' => 'nullable|string|in:PEN,USD',   // Filtro por moneda (valores válidos: PEN, USD)
+            'fecha_inicio' => 'required|date',          // Fecha de inicio (OBLIGATORIO)
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio', // Fecha de fin (OBLIGATORIO)
+        ]);
+
+        // Construir la consulta usando Eloquent
+        $vouchersQuery = \App\Models\Voucher::query()
+            ->where('user_id', $user->id) // Solo comprobantes del usuario autenticado
+            ->whereBetween('created_at', [$validated['fecha_inicio'], $validated['fecha_fin']]); // Rango obligatorio
+
+        // Aplicar los demás filtros, solo si se proporcionan
+        if (!empty($validated['serie'])) {
+            $vouchersQuery->where('serie', $validated['serie']);
+        }
+
+        if (!empty($validated['numero'])) {
+            $vouchersQuery->where('numero', $validated['numero']);
+        }
+
+        if (!empty($validated['tipo_comprobante'])) {
+            $vouchersQuery->where('tipo_comprobante', $validated['tipo_comprobante']);
+        }
+
+        if (!empty($validated['moneda'])) {
+            $vouchersQuery->where('moneda', $validated['moneda']);
+        }
+
+        // Obtener los resultados
+        $vouchers = $vouchersQuery->get();
+
+        // Responder con los comprobantes encontrados
+        return response()->json([
+            'message' => 'Listado de comprobantes recuperado exitosamente.',
+            'data' => $vouchers,
+        ], 200);
+    }
+
 }
