@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Vouchers;
 
 use App\Http\Resources\Vouchers\VoucherResource;
+use App\Models\Voucher;
 use App\Services\VoucherService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -15,28 +16,36 @@ class StoreVouchersHandler
     {
     }
 
-    public function __invoke(Request $request): JsonResponse|AnonymousResourceCollection
+    public function __invoke(Request $request): JsonResponse
     {
         try {
-            $xmlFiles = $request->file('files');
+            // Validar que se reciba `xml_content` requerido y como string
+            $request->validate([
+                'xml_content' => 'required|string'
+            ]);
 
-            if (!is_array($xmlFiles)) {
-                $xmlFiles = [$xmlFiles];
-            }
+            // Extraer el contenido del XML
+            $xmlContent = $request->input('xml_content');
 
-            $xmlContents = [];
-            foreach ($xmlFiles as $xmlFile) {
-                $xmlContents[] = file_get_contents($xmlFile->getRealPath());
-            }
+            // Parsear el contenido XML y continuar con la lógica del proceso
+            $xml = simplexml_load_string($xmlContent);
+            $serie = (string) $xml->Serie ?? null;
+            $numero = (string) $xml->Numero ?? null;
+            $tipoComprobante = (string) $xml->TipoComprobante ?? null;
+            $moneda = (string) $xml->Moneda ?? null;
 
-            $user = auth()->user();
-            $vouchers = $this->voucherService->storeVouchersFromXmlContents($xmlContents, $user);
+            // Crear el registro de Voucher con los nuevos campos
+            $voucher = Voucher::create([
+                'xml_content' => $xmlContent,
+                'serie' => $serie,
+                'numero' => $numero,
+                'tipo_comprobante' => $tipoComprobante,
+                'moneda' => $moneda,
+            ]);
 
-            return VoucherResource::collection($vouchers);
-        } catch (Exception $exception) {
-            return response()->json([
-                'message' => $exception->getMessage(),
-            ], 400);
+            return response()->json($voucher, 201);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }

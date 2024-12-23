@@ -45,6 +45,10 @@ class Voucher extends Model
         'receiver_document_number',
         'total_amount',
         'xml_content',
+        'serie',
+        'numero',
+        'tipo_comprobante',
+        'moneda',
         'user_id',
     ];
 
